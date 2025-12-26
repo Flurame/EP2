@@ -1,0 +1,4 @@
+DATABASE_URL=postgresql+psycopg2://postgres:1@localhost:5432/kondi
+SECRET_KEY=1
+FLASK_ENV=development
+FLASK_DEBUG=True

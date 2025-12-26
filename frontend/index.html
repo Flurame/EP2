@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Система Управления</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <style>
+    /* Утилиты для переключения экранов */
+    .view-section {
+      display: none;
+    }
+    .view-section.active {
+      display: block;
+    }
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0,0,0,0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+  </style>
+</head>
+
+<body>
+  <a class="sr-only" href="#main">Перейти к содержимому</a>
+
+  <!-- ШАПКА -->
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <div class="brand" aria-label="Система учета">
+        <!-- Название берется из config.js -->
+        <div class="brand__title" id="appTitle">Загрузка...</div>
+        <div class="brand__subtitle" id="appSubtitle">Универсальная панель управления</div>
+      </div>
+
+      <div id="userbar" class="userbar" hidden>
+        <div class="userbar__meta">
+          <div id="userName" class="userbar__name"></div>
+          <div id="userRole" class="userbar__role"></div>
+        </div>
+        <button id="logoutBtn" class="btn btn--ghost" type="button">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+    <div class="container">
+
+      <!-- ========== ЭКРАН 1: ВХОД ========== -->
+      <section id="view-login" class="card view-section active" aria-labelledby="loginTitle">
+        <h1 id="loginTitle" class="h1">Вход в систему</h1>
+        <p class="muted">Авторизация через базу данных (JWT)</p>
+
+        <form id="loginForm" class="split" autocomplete="on">
+          <div class="grid grid--2">
+            <label class="field">
+              <span class="field__label">Логин</span>
+              <input id="loginUser" class="input" type="text" name="login" autocomplete="username" required />
+            </label>
+            <label class="field">
+              <span class="field__label">Пароль</span>
+              <input id="loginPass" class="input" type="password" name="password" autocomplete="current-password" required />
+            </label>
+          </div>
+          <div class="actions">
+            <button class="btn btn--primary" type="submit">Войти</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ========== ЭКРАН 2: ПРИЛОЖЕНИЕ ========== -->
+      <section id="view-app" class="card view-section" hidden aria-labelledby="appMainTitle">
+
+        <div class="card__head">
+          <div>
+            <h1 id="appMainTitle" class="h1">Панель управления</h1>
+            <p class="muted" id="appMainDesc">Работа с данными системы</p>
+          </div>
+        </div>
+
+        <!-- НАВИГАЦИЯ (ВКЛАДКИ) -->
+        <!-- JS заполнит кнопками из config.entities -->
+        <nav class="tabs" role="tablist" aria-label="Разделы" id="navTabs">
+          <!-- Здесь будут кнопки типа: <button class="tab" data-tab="requests">Заявки</button> -->
+        </nav>
+
+        <!-- КОНТЕНТ АКТИВНОЙ ВКЛАДКИ -->
+        <div id="tabContent" class="tab-panel">
+          <!-- Сюда JS вставит таблицу или карточки -->
+          <div class="loading">Загрузка данных...</div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ========== УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ ОКНО ========== -->
+  <!-- Одно окно для всех сущностей (заявки, пользователи, etc.) -->
+  <dialog id="dynamicModal" class="modal" aria-labelledby="modalTitle">
+    <div class="modal__box">
+
+      <div class="modal__head">
+        <div id="modalTitle" class="modal__title">Редактирование</div>
+        <button class="iconBtn" type="button" aria-label="Закрыть" onclick="document.getElementById('dynamicModal').close()">✕</button>
+      </div>
+
+      <form id="dynamicForm" autocomplete="off">
+        <!-- JS вставит сюда inputs динамически -->
+        <div id="modalFields" class="grid grid--2">
+          <!-- Пример того, что будет генерироваться:
+          <label class="field">
+            <span class="field__label">Название</span>
+            <input type="text" name="title" class="input" required>
+          </label>
+          -->
+        </div>
+
+        <div class="modal__actions">
+          <div></div>
+          <div class="modal__actionsRight">
+            <button type="button" class="btn btn--ghost" onclick="document.getElementById('dynamicModal').close()">Отмена</button>
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </dialog>
+
+  <!-- ТОСТ ДЛЯ УВЕДОМЛЕНИЙ -->
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+  <!-- ПОДКЛЮЧЕНИЕ СКРИПТОВ -->
+  <!-- Используем type="module" для ES6 import/export -->
+  <!-- ApexCharts Lib -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
