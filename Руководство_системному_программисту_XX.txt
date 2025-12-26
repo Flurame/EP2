@@ -1,0 +1,997 @@
+================================================================================
+РУКОВОДСТВО СИСТЕМНОМУ ПРОГРАММИСТУ XX
+Система учета заявок на ремонт климатического оборудования
+================================================================================
+
+ДАТА СОЗДАНИЯ: 25.12.2025
+ВЕРСИЯ: 1.0
+РАБОЧЕЕ МЕСТО: XX
+РАЗРАБОТЧИК: ИСП-22/23
+
+================================================================================
+1. НАЗНАЧЕНИЕ И ОБЛАСТЬ ПРИМЕНЕНИЯ
+================================================================================
+
+1.1 НАЗНАЧЕНИЕ ДОКУМЕНТА:
+
+Данное руководство предназначено для системных администраторов и специалистов 
+по информационным технологиям, ответственных за:
+
+- Установку и настройку системы
+- Управление и поддержку работающей системы
+- Резервное копирование и восстановление данных
+- Мониторинг производительности
+- Решение технических проблем
+- Администрирование пользователей
+
+1.2 ОБЛАСТЬ ПРИМЕНЕНИЯ:
+
+Система предназначена для использования в:
+- Сервисных центрах по ремонту климатического оборудования
+- Организациях с 5-500 сотрудниками
+- Компаниях, нуждающихся в автоматизации процесса управления заявками
+
+1.3 ЦЕЛЕВАЯ АУДИТОРИЯ:
+
+- Системные администраторы (Linux/Windows)
+- Администраторы баз данных (PostgreSQL)
+- DevOps инженеры
+- Специалисты по информационной безопасности
+- IT-руководители и ИТ-директора
+
+================================================================================
+2. УСЛОВИЯ ВЫПОЛНЕНИЯ ПРОГРАММЫ
+================================================================================
+
+2.1 ТРЕБОВАНИЯ К ОПЕРАЦИОННОЙ СИСТЕМЕ:
+
+РЕКОМЕНДУЕМЫЕ (Production):
+- Windows Server 2019/2022 (64-bit)
+- Ubuntu Server 20.04 LTS или выше (64-bit)
+- CentOS 7.x или RedHat Enterprise Linux 7.x
+
+АЛЬТЕРНАТИВНЫЕ:
+- Debian 10.x или выше
+- Rocky Linux 8.x или выше
+- Amazon Linux 2
+
+МИНИМАЛЬНЫЕ:
+- Windows 10 Professional (для разработки)
+- Ubuntu 18.04 (для разработки)
+
+2.2 ТРЕБОВАНИЯ К ОБОРУДОВАНИЮ:
+
+МИНИМАЛЬНЫЕ ТРЕБОВАНИЯ (для разработки, до 50 пользователей):
+- ЦПУ: Intel Core i5 2.4 GHz или эквивалент
+- ОЗУ: 4 GB DDR4
+- Диск: 50 GB SSD (для ОС + приложение + БД)
+- Сетевой интерфейс: 100 Mbps Ethernet
+
+РЕКОМЕНДУЕМЫЕ (для production, до 500 пользователей):
+- ЦПУ: Intel Xeon E5 или эквивалент (4 ядра, 2.5+ GHz)
+- ОЗУ: 8-16 GB DDR4
+- Диск: 500 GB SSD (предпочтительно RAID 1)
+- Сетевой интерфейс: 1 Gbps Ethernet
+- Источник бесперебойного питания (UPS): минимум 1 час
+
+ВЫСОКОНАГРУЖЕННЫЕ СРЕДЫ (более 1000 пользователей):
+- ЦПУ: Intel Xeon Platinum или эквивалент (8+ ядер)
+- ОЗУ: 32 GB DDR4 и выше
+- Диск: 2+ TB SSD с RAID
+- Сеть: 10 Gbps интерфейс
+- Резервные каналы и failover
+
+2.3 ТРЕБОВАНИЯ К ПРОГРАММНОМУ ОБЕСПЕЧЕНИЮ:
+
+ОБЯЗАТЕЛЬНОЕ ПРОГРАММНОЕ ОБЕСПЕЧЕНИЕ:
+
+Python:
+- Версия: 3.8 или выше (проверено на 3.8, 3.9, 3.10, 3.11)
+- Источник: python.org или package manager (apt, yum)
+- Установка: системный пакет или pyenv
+
+PostgreSQL:
+- Версия: 12 или выше (рекомендуется 14+)
+- Источник: postgresql.org или package manager
+- Порт: 5432 (по умолчанию)
+- Кодировка: UTF-8
+- Timezone: UTC или местное время
+
+Web Server (для production):
+- Nginx 1.18+ или Apache 2.4+
+- Или встроенный Gunicorn/uWSGI
+
+ДОПОЛНИТЕЛЬНОЕ (опционально):
+- Redis 6.0+ (для кэширования и сессий)
+- Docker 20.10+ (для контейнеризации)
+- Git (для версионирования)
+
+2.4 ЗАВИСИМОСТИ PYTHON (requirements.txt):
+
+Flask==2.3.3
+SQLAlchemy>=2.0.31
+Flask-SQLAlchemy==3.0.5
+psycopg2-binary==2.9.6
+python-dotenv==1.0.0
+Werkzeug==2.3.7
+PyJWT==2.8.0
+python-dateutil==2.8.2
+requests==2.31.0
+qrcode[pil]==7.4.2
+Pillow==9.5.0
+gunicorn==21.2.0 (для production)
+flask-cors==4.0.0 (для CORS)
+
+2.5 СЕТЕВЫЕ ТРЕБОВАНИЯ:
+
+- Доступ в Интернет (для синхронизации и обновлений)
+- Порт 5000 (Flask приложение, только в разработке)
+- Порт 80 (HTTP) - требуется для web
+- Порт 443 (HTTPS) - требуется для production
+- Порт 5432 (PostgreSQL) - внутренняя сеть
+- Динамический DNS (если требуется удаленный доступ)
+
+2.6 ЛИЦЕНЗИИ И РАЗРЕШЕНИЯ:
+
+Необходимые разрешения на использование:
+- Python: Python Software Foundation License (свободно)
+- PostgreSQL: PostgreSQL License (свободно)
+- Flask и компоненты: BSD License (свободно)
+- Компоненты с GPL: убедитесь в совместимости лицензий
+
+================================================================================
+3. ПОДГОТОВКА К ЭКСПЛУАТАЦИИ
+================================================================================
+
+3.1 ПЛАНИРОВАНИЕ УСТАНОВКИ:
+
+ЭТАП 1: Проверка требований (2 часа)
+- Собрать оборудование согласно требованиям
+- Проверить доступ в интернет
+- Получить права администратора
+- Подготовить учетные данные для БД
+
+ЭТАП 2: Установка операционной системы (3-4 часа)
+- Установить и настроить ОС
+- Отключить ненужные сервисы
+- Настроить брандмауэр
+- Обновить все пакеты
+
+ЭТАП 3: Установка Python и PostgreSQL (2-3 часа)
+- Установить Python 3.8+
+- Установить PostgreSQL 12+
+- Проверить версии
+- Создать пользователя БД
+
+ЭТАП 4: Развертывание приложения (2-3 часа)
+- Скачать исходный код
+- Установить зависимости Python
+- Настроить переменные окружения
+- Инициализировать БД
+
+ЭТАП 5: Настройка production среды (4-6 часов)
+- Установить web server (Nginx/Apache)
+- Настроить SSL/TLS сертификаты
+- Настроить systemd сервис
+- Настроить логирование
+
+ОБЩЕЕ ВРЕМЯ: 13-20 часов
+
+3.2 ПОШАГОВАЯ УСТАНОВКА НА UBUNTU 20.04:
+
+ШАГ 1: Обновление системы
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+```
+
+ШАГ 2: Установка Python и pip
+```bash
+sudo apt-get install -y python3.10 python3-pip python3-venv
+python3 --version  # Проверка версии
+pip3 --version     # Проверка pip
+```
+
+ШАГ 3: Установка PostgreSQL
+```bash
+sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+ШАГ 4: Создание пользователя и БД PostgreSQL
+```bash
+sudo -u postgres psql
+CREATE USER repair_user WITH PASSWORD 'your_secure_password';
+CREATE DATABASE kondi OWNER repair_user;
+ALTER DATABASE kondi SET client_encoding = 'UTF8';
+GRANT ALL PRIVILEGES ON DATABASE kondi TO repair_user;
+\q
+```
+
+ШАГ 5: Создание директории приложения
+```bash
+sudo mkdir -p /opt/repair-system
+sudo chown $USER:$USER /opt/repair-system
+cd /opt/repair-system
+```
+
+ШАГ 6: Клонирование кода (или распаковка архива)
+```bash
+git clone <repository_url> .
+# ИЛИ
+tar xzf repair-system.tar.gz -C .
+```
+
+ШАГ 7: Создание виртуального окружения
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+ШАГ 8: Установка зависимостей
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+ШАГ 9: Настройка переменных окружения
+```bash
+cat > .env << EOF
+DATABASE_URL=postgresql://repair_user:your_secure_password@localhost:5432/kondi
+SECRET_KEY=your-super-secret-key-generate-new-one
+FLASK_ENV=production
+DEBUG=False
+FEEDBACK_FORM_URL=https://docs.google.com/forms/d/e/1FAIpQLSdhZcExx6LSIXxk0ub55mSu-WIh23WYdGG9HY5EZhLDo7P8eA/viewform
+EOF
+```
+
+ШАГ 10: Инициализация БД
+```bash
+python3 << 'EOF'
+from app import app, db
+with app.app_context():
+    db.create_all()
+    print("Database initialized successfully!")
+EOF
+```
+
+ШАГ 11: Установка Nginx
+```bash
+sudo apt-get install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+ШАГ 12: Настройка Nginx (обратный прокси)
+```bash
+sudo tee /etc/nginx/sites-available/repair-system > /dev/null << EOF
+server {
+    listen 80;
+    server_name your_domain.com;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/repair-system /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+ШАГ 13: Создание systemd сервиса
+```bash
+sudo tee /etc/systemd/system/repair-system.service > /dev/null << EOF
+[Unit]
+Description=Repair System Service
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=repair_user
+WorkingDirectory=/opt/repair-system
+Environment="PATH=/opt/repair-system/venv/bin"
+ExecStart=/opt/repair-system/venv/bin/gunicorn -w 4 -b localhost:5000 -t 120 app:app
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl start repair-system
+sudo systemctl enable repair-system
+```
+
+ШАГ 14: Проверка статуса
+```bash
+sudo systemctl status repair-system
+curl http://localhost:5000/  # Проверка приложения
+```
+
+3.3 УСТАНОВКА НА WINDOWS 10/11:
+
+1. Скачать Python 3.10 с python.org
+2. Установить с отметкой "Add Python to PATH"
+3. Скачать PostgreSQL с postgresql.org
+4. Установить с пользователем postgres
+5. Создать БД: psql -U postgres -c "CREATE DATABASE kondi;"
+6. Создать папку: C:\repair-system
+7. Распаковать файлы проекта в папку
+8. Открыть PowerShell и выполнить:
+   - cd C:\repair-system
+   - python -m venv venv
+   - .\venv\Scripts\activate
+   - pip install -r requirements.txt
+   - Отредактировать .env с путями Windows
+   - python app.py (для разработки)
+
+================================================================================
+4. ОПИСАНИЕ ПРОГРАММЫ И ЕЕ КОМПОНЕНТОВ
+================================================================================
+
+4.1 ОБЩАЯ АРХИТЕКТУРА:
+
+Трёхуровневая архитектура (3-Tier):
+
+Уровень 1: ПРЕЗЕНТАЦИЯ (Frontend)
+- HTML5/CSS3/JavaScript
+- Responsive Design
+- Single Page Application (SPA)
+- Совместимость с Chrome, Firefox, Safari, Edge
+
+Уровень 2: БИЗНЕС-ЛОГИКА (Backend/Application)
+- Flask веб-фреймворк
+- REST API
+- Authentication (JWT)
+- Authorization (Role-based)
+
+Уровень 3: ДАННЫЕ (Database)
+- PostgreSQL СУБД
+- Нормализованная схема (3НФ)
+- Индексы для оптимизации
+
+4.2 ОСНОВНЫЕ МОДУЛИ:
+
+МОДУЛЬ 1: Authentication (app/routes/auth.py)
+Функции:
+- POST /api/auth/login - вход в систему
+- POST /api/auth/logout - выход из системы
+- POST /api/auth/refresh - обновление токена
+Статус: ✓ Стабильный
+
+МОДУЛЬ 2: Repair Requests (app/routes/requests.py)
+Функции:
+- GET /api/requests/ - список заявок
+- POST /api/requests/ - создание заявки
+- PUT /api/requests/{id} - обновление
+- DELETE /api/requests/{id} - удаление
+Статус: ✓ Стабильный
+
+МОДУЛЬ 3: Users Management (app/routes/users.py)
+Функции:
+- GET /api/users/ - список пользователей
+- POST /api/users/ - создание пользователя
+- PUT /api/users/{id} - обновление
+- DELETE /api/users/{id} - удаление
+Статус: ✓ Стабильный
+
+МОДУЛЬ 4: Statistics (app/routes/stat.py)
+Функции:
+- GET /api/statistics/ - общая статистика
+- GET /api/statistics/completed-count - завершённые
+- GET /api/statistics/average-time - среднее время
+- GET /api/statistics/by-equipment-type - по типам
+Статус: ✓ Стабильный
+
+МОДУЛЬ 5: Comments (app/routes/comments.py)
+Функции:
+- POST /api/comments/ - добавить комментарий
+- GET /api/comments/request/{id} - комментарии заявки
+- GET /api/comments/{id} - конкретный комментарий
+Статус: ✓ Стабильный
+
+4.3 СЛУЖЕБНЫЕ КОМПОНЕНТЫ:
+
+DATABASE LAYER (app/database.py):
+```python
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy()
+
+def init_db(app):
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+```
+Отвечает за: Инициализация БД, создание таблиц
+
+MIDDLEWARE (app/middleware/auth_middleware.py):
+- require_auth(): Проверка наличия JWT токена
+- require_role(): Проверка роли пользователя
+- Обработка исключений авторизации
+
+CONFIG (app/config.py):
+- DATABASE_URL: Строка подключения к БД
+- SECRET_KEY: Ключ для шифрования
+- FLASK_ENV: Среда (development/production)
+- DEBUG: Режим отладки
+
+================================================================================
+5. УПРАВЛЕНИЕ ПРОГРАММОЙ
+================================================================================
+
+5.1 ЗАПУСК И ОСТАНОВКА:
+
+РАЗРАБОТКА (Development):
+```bash
+# Запуск с автоперезагрузкой
+source venv/bin/activate
+python app.py
+
+# Приложение доступно на: http://localhost:5000
+# Автоматически перезагружается при изменении кода
+```
+
+PRODUCTION (через systemd):
+```bash
+# Запуск сервиса
+sudo systemctl start repair-system
+
+# Остановка сервиса
+sudo systemctl stop repair-system
+
+# Перезагрузка
+sudo systemctl restart repair-system
+
+# Статус
+sudo systemctl status repair-system
+
+# Просмотр логов
+sudo journalctl -u repair-system -f
+```
+
+5.2 ОСНОВНЫЕ ОПЕРАЦИИ:
+
+СОЗДАНИЕ АДМИНИСТРАТОРА:
+```bash
+python3 << 'EOF'
+from app import app, db
+from models.user import User
+from werkzeug.security import generate_password_hash
+
+with app.app_context():
+    admin = User(
+        full_name="Admin Name",
+        phone="+7 999 999 99 99",
+        login="admin",
+        password=generate_password_hash("secure_password"),
+        user_type="Менеджер"
+    )
+    db.session.add(admin)
+    db.session.commit()
+    print("Admin created successfully!")
+EOF
+```
+
+СБРОС ПАРОЛЯ:
+```bash
+python3 << 'EOF'
+from app import app, db
+from models.user import User
+from werkzeug.security import generate_password_hash
+
+with app.app_context():
+    user = User.query.filter_by(login="username").first()
+    if user:
+        user.password = generate_password_hash("new_password")
+        db.session.commit()
+        print("Password reset successfully!")
+    else:
+        print("User not found!")
+EOF
+```
+
+ПРОВЕРКА ЗДОРОВЬЯ СИСТЕМЫ:
+```bash
+# Проверка приложения
+curl -I http://localhost:5000/
+
+# Проверка БД
+psql -U repair_user -d kondi -c "SELECT COUNT(*) FROM users;"
+
+# Проверка дискового пространства
+df -h /
+
+# Проверка памяти
+free -h
+
+# Проверка процесса
+ps aux | grep gunicorn
+```
+
+5.3 УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ:
+
+ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ (веб-интерфейс):
+1. Вход как Менеджер
+2. Перейти на вкладку "Пользователи"
+3. Нажать "Добавить пользователя"
+4. Заполнить форму
+5. Выбрать роль
+6. Нажать "Создать"
+
+ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ (CLI):
+```bash
+python3 -c "
+from app import app, db
+from models.user import User
+from werkzeug.security import generate_password_hash
+
+with app.app_context():
+    user = User(
+        full_name='Иван Петров',
+        phone='+7 999 111 11 11',
+        login='ivan_petrov',
+        password=generate_password_hash('password123'),
+        user_type='Специалист'
+    )
+    db.session.add(user)
+    db.session.commit()
+"
+```
+
+================================================================================
+6. УПРАВЛЕНИЕ ДАННЫМИ
+================================================================================
+
+6.1 РЕЗЕРВНОЕ КОПИРОВАНИЕ:
+
+ПОЛНЫЙ BACKUP (SQL формат):
+```bash
+pg_dump -U repair_user -h localhost -d kondi > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+СЖАТЫЙ BACKUP (Custom формат):
+```bash
+pg_dump -U repair_user -h localhost -d kondi -Fc > backup_$(date +%Y%m%d_%H%M%S).dump
+```
+
+ТОЛЬКО СТРУКТУРА БД:
+```bash
+pg_dump -U repair_user -h localhost -d kondi -s > schema_backup.sql
+```
+
+ТОЛЬКО ДАННЫЕ:
+```bash
+pg_dump -U repair_user -h localhost -d kondi -a > data_backup.sql
+```
+
+АВТОМАТИЧЕСКИЙ BACKUP (cron):
+```bash
+# Отредактировать crontab
+crontab -e
+
+# Добавить строку для ежедневного backup в 2:00
+0 2 * * * pg_dump -U repair_user -d kondi -Fc > /backups/kondi_$(date +\%Y\%m\%d).dump
+
+# Добавить строку для еженедельной очистки старых backup'ов
+0 3 * * 0 find /backups -name "kondi_*.dump" -mtime +30 -delete
+```
+
+6.2 ВОССТАНОВЛЕНИЕ ИЗ BACKUP:
+
+ИЗ SQL ФАЙЛА:
+```bash
+# Вариант 1: Восстановление в существующую БД
+psql -U repair_user -d kondi < backup_20251225_143000.sql
+
+# Вариант 2: Создание новой БД и восстановление
+psql -U postgres -c "CREATE DATABASE kondi_restored OWNER repair_user;"
+psql -U repair_user -d kondi_restored < backup_20251225_143000.sql
+```
+
+ИЗ DUMP ФАЙЛА (Custom формат):
+```bash
+pg_restore -U repair_user -d kondi backup_20251225_143000.dump
+
+# С подробным выводом:
+pg_restore -U repair_user -d kondi -v backup_20251225_143000.dump
+```
+
+ПРОВЕРКА ЦЕЛОСТНОСТИ BACKUP'А:
+```bash
+pg_restore --list backup_20251225_143000.dump | head -20
+```
+
+6.3 ЭКСПОРТ/ИМПОРТ ДАННЫХ:
+
+ЭКСПОРТ ЗАЯВОК В CSV:
+```bash
+psql -U repair_user -d kondi -c "\COPY repair_requests TO STDOUT CSV HEADER" > requests.csv
+```
+
+ЭКСПОРТ ПОЛЬЗОВАТЕЛЕЙ В CSV:
+```bash
+psql -U repair_user -d kondi -c "\COPY users TO STDOUT CSV HEADER" > users.csv
+```
+
+ИМПОРТ ДАННЫХ ИЗ CSV:
+```bash
+psql -U repair_user -d kondi -c "\COPY repair_requests(start_date, climate_tech_type, climate_tech_model, problem_description, request_status, client_id) FROM 'requests.csv' CSV HEADER;"
+```
+
+6.4 ЧИСТКА И АРХИВИРОВАНИЕ:
+
+УДАЛЕНИЕ СТАРЫХ ЗАВЕРШЁННЫХ ЗАЯВОК (архивирование):
+```sql
+-- Сначала экспортируем для архива
+\COPY repair_requests WHERE completion_date < '2024-01-01' TO 'archive_2024.csv' CSV HEADER;
+
+-- Затем удаляем
+DELETE FROM repair_requests WHERE completion_date < '2024-01-01';
+VACUUM repair_requests;
+```
+
+ОПТИМИЗАЦИЯ БД (VACUUM):
+```bash
+psql -U repair_user -d kondi -c "VACUUM ANALYZE;"
+```
+
+================================================================================
+7. МОНИТОРИНГ И ЛОГИРОВАНИЕ
+================================================================================
+
+7.1 СИСТЕМНОЕ ЛОГИРОВАНИЕ:
+
+ПРОСМОТР ЛОГОВ SYSTEMD:
+```bash
+# Последние 50 строк
+sudo journalctl -u repair-system -n 50
+
+# С момента последней загрузки
+sudo journalctl -u repair-system -b
+
+# Real-time мониторинг
+sudo journalctl -u repair-system -f
+
+# За последний 1 час
+sudo journalctl -u repair-system --since "1 hour ago"
+
+# Уровень ERROR и выше
+sudo journalctl -u repair-system -p err
+```
+
+РОТАЦИЯ ЛОГОВ (logrotate):
+```bash
+sudo tee /etc/logrotate.d/repair-system > /dev/null << EOF
+/var/log/repair-system/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 repair_user repair_user
+    sharedscripts
+    postrotate
+        systemctl reload repair-system > /dev/null 2>&1 || true
+    endscript
+}
+EOF
+```
+
+7.2 ПРИЛОЖЕНИЕ ЛОГИРОВАНИЕ:
+
+СТРУКТУРА ЛОГОВ В ПРИЛОЖЕНИИ:
+```
+logs/
+├── app.log (основные логи приложения)
+├── access.log (логи HTTP запросов)
+├── error.log (только ошибки)
+└── audit.log (логирование действий пользователей)
+```
+
+ПРОСМОТР ЛОГОВ ПРИЛОЖЕНИЯ:
+```bash
+# Последние 100 строк
+tail -100 /opt/repair-system/logs/app.log
+
+# Содержащие ERROR
+grep ERROR /opt/repair-system/logs/app.log
+
+# За последний день
+find /opt/repair-system/logs -name "*.log" -mtime -1
+```
+
+7.3 МОНИТОРИНГ ПРОИЗВОДИТЕЛЬНОСТИ:
+
+ПРОВЕРКА ИСПОЛЬЗОВАНИЯ РЕСУРСОВ:
+```bash
+# CPU и память в реальном времени
+top
+# или
+htop
+
+# Дисковое пространство
+df -h
+
+# Использование памяти БД
+ps aux | grep postgres
+```
+
+МОНИТОРИНГ БД POSTGRESQL:
+```bash
+# Активные подключения
+psql -U repair_user -d kondi -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Размер БД
+psql -U repair_user -d kondi -c "SELECT pg_size_pretty(pg_database_size('kondi'));"
+
+# Размер таблиц
+psql -U repair_user -d kondi -c "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) FROM pg_tables WHERE schemaname != 'pg_catalog' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;"
+```
+
+================================================================================
+8. БЕЗОПАСНОСТЬ
+================================================================================
+
+8.1 ТРЕБОВАНИЯ К ПАРОЛЯМ:
+
+Пароли должны соответствовать следующим требованиям:
+- Минимальная длина: 8 символов
+- Содержать прописные буквы (A-Z)
+- Содержать строчные буквы (a-z)
+- Содержать цифры (0-9)
+- Содержать специальные символы (!@#$%^&*)
+- Не содержать логина или имени пользователя
+- Не совпадать с последними 5 паролями
+
+ПРИМЕРЫ ПРАВИЛЬНЫХ ПАРОЛЕЙ:
+- MyRepair#System2025
+- Serv1ce@Center&Kondi
+- Admin$Pass2025!Secure
+
+ПРИМЕРЫ НЕПРАВИЛЬНЫХ ПАРОЛЕЙ:
+- password123 (нет спецсимволов)
+- Admin (очень короткий)
+- admin_login (содержит логин)
+
+8.2 УПРАВЛЕНИЕ ДОСТУПОМ:
+
+ФАЙЛОВЫЕ РАЗРЕШЕНИЯ:
+```bash
+# Приложение
+chmod 750 /opt/repair-system
+chmod 640 /opt/repair-system/.env
+
+# Логи
+chmod 750 /opt/repair-system/logs
+chmod 640 /opt/repair-system/logs/*.log
+
+# Backup'ы
+chmod 700 /backups
+chmod 600 /backups/*.dump
+```
+
+ДОСТУП К БД:
+```sql
+-- Ограничить доступ локально
+-- Отредактировать /etc/postgresql/*/main/pg_hba.conf
+local   kondi   repair_user                           md5
+host    kondi   repair_user     127.0.0.1/32         md5
+host    kondi   repair_user     ::1/128              md5
+```
+
+8.3 SSL/TLS СЕРТИФИКАТЫ:
+
+ПОЛУЧЕНИЕ СЕРТИФИКАТА LETS ENCRYPT:
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot certonly --nginx -d your_domain.com
+```
+
+НАСТРОЙКА NGINX С SSL:
+```nginx
+server {
+    listen 443 ssl;
+    server_name your_domain.com;
+    
+    ssl_certificate /etc/letsencrypt/live/your_domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your_domain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    # остальные параметры...
+}
+
+# Редирект с HTTP на HTTPS
+server {
+    listen 80;
+    server_name your_domain.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+8.4 ЗАЩИТА ОТ АТАК:
+
+BRUTE FORCE PROTECTION:
+```bash
+# Установить fail2ban
+sudo apt-get install -y fail2ban
+
+# Конфигурация для Nginx
+sudo tee /etc/fail2ban/jail.local > /dev/null << EOF
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+
+[nginx-http-auth]
+enabled = true
+
+[nginx-limit-req]
+enabled = true
+EOF
+
+sudo systemctl restart fail2ban
+```
+
+DDoS PROTECTION (Nginx):
+```nginx
+# Ограничение количества подключений
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+limit_conn addr 10;
+
+# Ограничение запросов
+limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+limit_req zone=api burst=20 nodelay;
+```
+
+================================================================================
+9. РЕШЕНИЕ ТИПИЧНЫХ ПРОБЛЕМ
+================================================================================
+
+ПРОБЛЕМА 1: БД не подключается
+Ошибка: "could not connect to server"
+Решение:
+```bash
+# Проверить статус PostgreSQL
+sudo systemctl status postgresql
+
+# Проверить, слушает ли PostgreSQL порт
+sudo netstat -tlnp | grep postgres
+
+# Проверить учетные данные в .env
+cat /opt/repair-system/.env | grep DATABASE_URL
+
+# Перезапустить PostgreSQL
+sudo systemctl restart postgresql
+```
+
+ПРОБЛЕМА 2: Приложение не стартует
+Ошибка: "Address already in use"
+Решение:
+```bash
+# Найти процесс, занимающий порт
+sudo lsof -i :5000
+
+# Убить процесс
+kill -9 <PID>
+
+# Или выбрать другой порт в .env
+```
+
+ПРОБЛЕМА 3: Недостаточно свободного места
+Ошибка: "No space left on device"
+Решение:
+```bash
+# Проверить дисковое пространство
+df -h
+
+# Очистить логи
+sudo journalctl --vacuum=500M
+
+# Удалить старые backup'ы
+rm /backups/kondi_*_30_days_old.dump
+
+# Очистить /tmp
+sudo rm -rf /tmp/*
+```
+
+ПРОБЛЕМА 4: Медленная работа приложения
+Решение:
+```bash
+# Увеличить число рабочих процессов gunicorn
+# В systemd сервисе:
+ExecStart=/opt/repair-system/venv/bin/gunicorn -w 8 -b localhost:5000 app:app
+
+# Добавить кэширование
+# Установить Redis и настроить Flask-Caching
+
+# Оптимизировать БД
+psql -U repair_user -d kondi -c "ANALYZE; REINDEX;"
+```
+
+ПРОБЛЕМА 5: Высокое использование памяти
+Решение:
+```bash
+# Проверить, какой процесс потребляет память
+top
+
+# Перезагрузить приложение
+sudo systemctl restart repair-system
+
+# Увеличить swap
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+================================================================================
+10. ПЛАНОВОЕ ОБСЛУЖИВАНИЕ
+================================================================================
+
+10.1 ЕЖЕДНЕВНЫЕ ЗАДАЧИ:
+
+- ✓ Проверка статуса приложения (systemctl status repair-system)
+- ✓ Проверка логов на ошибки (journalctl -u repair-system -p err)
+- ✓ Проверка дискового пространства (df -h)
+- ✓ Проверка наличия резервной копии (ls -lh /backups)
+
+10.2 ЕЖЕНЕДЕЛЬНЫЕ ЗАДАЧИ:
+
+- ✓ Проверка производительности БД
+- ✓ Анализ логов приложения на аномалии
+- ✓ Проверка безопасности (обновления)
+- ✓ Тест восстановления из backup
+
+10.3 ЕЖЕМЕСЯЧНЫЕ ЗАДАЧИ:
+
+- ✓ Плановое обновление операционной системы
+- ✓ Обновление зависимостей Python
+- ✓ Полная оптимизация БД (VACUUM ANALYZE)
+- ✓ Архивирование старых данных
+- ✓ Проверка доступного дискового пространства
+- ✓ Обновление SSL сертификатов (если близко окончание)
+
+10.4 КВАРТАЛЬНЫЕ ЗАДАЧИ:
+
+- ✓ Проверка и обновление документации
+- ✓ Полное тестирование процедуры восстановления
+- ✓ Проверка и обновление политики безопасности
+- ✓ Анализ логов за квартал, выявление проблем
+- ✓ Планирование емкости (нужно ли больше ресурсов)
+
+================================================================================
+11. КОНТАКТНАЯ ИНФОРМАЦИЯ И ПОДДЕРЖКА
+================================================================================
+
+ДЛЯ ТЕХНИЧЕСКОЙ ПОДДЕРЖКИ:
+- Email: support@repair-system.local
+- Телефон: (внутренний номер)
+- Время поддержки: Пн-Пт 09:00-18:00 МСК
+
+ЕСЛИ СИСТЕМА НЕ РАБОТАЕТ:
+1. Проверить статус: sudo systemctl status repair-system
+2. Посмотреть логи: sudo journalctl -u repair-system -f
+3. Проверить БД: psql -U repair_user -d kondi -c "SELECT 1;"
+4. Перезагрузить: sudo systemctl restart repair-system
+5. Если не помогло - обратиться в поддержку с logs
+
+ДОКУМЕНТАЦИЯ:
+- Техническое описание: docs/architecture.txt
+- API документация: docs/api.md
+- Руководство пользователя: docs/user_guide.txt
+
+================================================================================
+КОНЕЦ РУКОВОДСТВА
+================================================================================
